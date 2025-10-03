@@ -1,0 +1,4 @@
+(executable
+ (public_name ZOVML)
+ (name main)
+ (libraries ZOVML))
