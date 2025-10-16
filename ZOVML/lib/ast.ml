@@ -131,6 +131,6 @@ type expr =
   | IfThenEsle of expr * expr * expr option
   | FunctionApply of expr * expr * expr list
   | Binop of expr * binop * expr
-  | Match of expr * pattern
+  | Match of expr * (pattern * expr) list
 
-and let_definition = Let_simple of is_rec * expr * expr list
+and let_definition = Let_simple of is_rec * pattern * expr
