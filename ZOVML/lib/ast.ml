@@ -6,17 +6,17 @@ type const =
   | Int of (int[@gen QCheck.Gen.(0 -- Int.max_int)]) (** e.g. [18] *)
   | Bool of bool (** e.g. [True] *)
   | Unit (** () *)
-[@@deriving qcheck, show { with_path = false }]
+[@@deriving show { with_path = false }]
 
-type 'a option =
-  | None (** None *)
-  | Some of 'a (** e.g. [Just 5] *)
-[@@deriving qcheck, show { with_path = false }]
+type 'a toption =
+  | TNone (** None *)
+  | TSome of 'a (** e.g. [Just 5] *)
+[@@deriving show { with_path = false }]
 
 type is_rec =
   | Rec
   | Nonrec
-[@@deriving qcheck, show { with_path = false }]
+[@@deriving show { with_path = false }]
 
 type tp =
   | TUnit (** () *)
@@ -26,14 +26,14 @@ type tp =
   | ListParam of tp (** e.g. [[Int]] *)
   | TupleParams of tp * tp * tp_list (** e.g. [(Int, Bool)] *)
   | FunctionType of functype
-[@@deriving qcheck, show { with_path = false }]
+[@@deriving show { with_path = false }]
 
 and functype = FuncT of tp * tp * tp_list (** e.g. [Int-> Bool -> (Int,Bool)] *)
 
 and tp_list =
   (tp list
   [@gen QCheck.Gen.(list_size (return (Int.min 2 (n / 10))) (gen_tp_sized (n / 10)))])
-[@@deriving qcheck, show { with_path = false }]
+[@@deriving show { with_path = false }]
 
 type binop =
   | And (** [&&]*)
@@ -51,7 +51,7 @@ type binop =
   | Greater (** [>] *)
   | EqualityOrLess (** [<=] *)
   | EqualityOrGreater (** [>=] *)
-[@@deriving qcheck, show { with_path = false }]
+[@@deriving show { with_path = false }]
 
 let gen_first_symbol =
   QCheck.Gen.(
@@ -95,31 +95,37 @@ let gen_string =
   >>= fun y -> if y then map correct_varname x >>= fun y -> y else x
 ;;
 
-type ident = Ident of (string[@gen gen_string])
-[@@deriving qcheck, show { with_path = false }]
+type ident = Ident of (string[@gen gen_string]) [@@deriving show { with_path = false }]
 
 type pconst =
   | OrdinaryPConst of const (** e.g [True]*)
   | NegativePInt of (int[@gen QCheck.Gen.(0 -- Int.max_int)]) (** e.g [-12]*)
-[@@deriving qcheck, show { with_path = false }]
+[@@deriving show { with_path = false }]
 
 type pattern =
-  | PWildcard (** _ *)
-  | PConst of pconst
-  | PIdentificator of ident (** e.g. [x] *)
-  | PList of listpat
-  | PTuple of pattern * pattern * pattern_list (** e.g. [(x, y, z)]*)
-  | POption of pattern option (** e.g. [Some x] *)
-
-and listpat =
-  | PCons of pattern * pattern (** e.g. [x:xs] *)
-  | PEnum of pattern_list (** e.g. [[x; y; z]] *)
+  (ident list[@gen QCheck.Gen.(list_size (return (Int.min 2 (n / 7))) gen_ident)])
+  * pat
+  * tp_list
+[@@deriving show { with_path = false }]
 
 and pattern_list =
   (pattern list
   [@gen QCheck.Gen.(list_size (return (Int.min 2 (n / 7))) (gen_pattern_sized (n / 7)))])
 
-type expr =
+and pat =
+  | PWildcard (** _ *)
+  | PConst of pconst
+  | PIdentificator of ident (** e.g. [x] *)
+  | PList of listpat
+  | PTuple of pattern * pattern * pattern_list (** e.g. [(x, y, z)]*)
+  | POption of pattern toption
+[@@deriving show { with_path = false }]
+
+and listpat =
+  | PCons of pattern * pattern (** e.g. [x:xs] *)
+  | PEnum of pattern_list (** e.g. [[x; y; z]] *)
+
+type expression =
   | Identificator of ident
   | Const of const
   | Tuple of expr * expr * expr list
@@ -128,9 +134,19 @@ type expr =
   | EList of expr list
   | Neg of expr
   | Let of let_definition * expr
-  | IfThenEsle of expr * expr * expr option
+  | IfThenEsle of expr * expr * expr toption
   | FunctionApply of expr * expr * expr list
   | Binop of expr * binop * expr
   | Match of expr * (pattern * expr) list
 
 and let_definition = Let_simple of is_rec * pattern * expr
+and expr = expression * tp_list [@@deriving show { with_path = false }]
+
+type def =
+  | VarsDef of pattern * expr (** e.g [x = let y = 12 in y * z where z = 5] *)
+  | FunDef of is_rec * ident * pattern * pattern_list * expr
+[@@deriving show { with_path = false }]
+
+and binding =
+  | Def of def
+  | Decl of ident * tp (** e.g [f :: Int -> Int]*)
