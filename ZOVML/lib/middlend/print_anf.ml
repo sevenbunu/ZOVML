@@ -41,4 +41,9 @@ and print_aexpr = function
   | AExpr cexp -> print_cexpr cexp
   | ALetIn (pat, outer, inner) ->
     Printf.sprintf "let %s = %s in\n%s" pat (print_cexpr outer) (print_aexpr inner)
-;;
+
+and print_binding = function
+  | Let (bnm, agrs, cexp) ->
+    Printf.sprintf "let %s %s = %s;;" bnm (agrs |> String.concat " ") (print_aexpr cexp)
+
+and print_bindings bl = List.map (fun f -> print_binding f) bl |> String.concat " \n"

@@ -97,7 +97,36 @@ let rec anf env expr cont =
   | _ -> fail "Error while trying to build aexpr while ANF"
 ;;
 
-let run_anf exp binded =
+let rec anf_top env exprs tr =
+  match exprs with
+  | [] -> return tr
+  | hd :: tl ->
+    (match hd with
+     | Def d ->
+       (match d with
+        | FunDef (_, _, (_, p, _), pl, (e, _)) ->
+          let* bn =
+            match p with
+            | PIdentificator (Ident id) -> return id
+            | _ -> fail "Failed while ANF"
+          in
+          let bnl =
+            List.map
+              ~f:(fun (_, p, _) ->
+                match p with
+                | PIdentificator (Ident id) -> id
+                | _ -> "")
+              pl
+          in
+          let _, res = run (anf env e (fun ie -> return (AExpr (CImmExpr ie)))) 0 in
+          (match res with
+           | Result.Ok ex -> anf_top env tl (Let (bn, bnl, ex) :: tr)
+           | Result.Error _ -> fail "ANF failed on top decl")
+        | _ -> fail "Not implemented")
+     | _ -> fail "Not implemented")
+;;
+
+let run_anf exp =
   let rec set s tl =
     match tl with
     | [] -> s
@@ -105,8 +134,31 @@ let run_anf exp binded =
   in
   run
     (anf
-       (set (Set.empty (module String)) binded)
+       (set (Set.empty (module String)) [])
        exp
        (fun ie -> return (AExpr (CImmExpr ie))))
     0
+;;
+
+let fn a =
+  let __anf_varapply0 = a > 2 in
+  let __anf_varite1 =
+    if __anf_varapply0
+    then (
+      let __anf_varapply2 = a - 1 in
+      __anf_varapply2)
+    else (
+      let __anf_varapply3 = a + 2 in
+      __anf_varapply3)
+  in
+  __anf_varite1
+;;
+
+let run_anf_top exp =
+  let rec set s tl =
+    match tl with
+    | [] -> s
+    | hd :: tl -> set (Base.Set.union s (Set.add (Set.empty (module String)) hd)) tl
+  in
+  run (anf_top (set (Set.empty (module String)) []) exp []) 0
 ;;
