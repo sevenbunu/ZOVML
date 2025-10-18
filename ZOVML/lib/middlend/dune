@@ -7,4 +7,4 @@
   (pps ppx_deriving.show ppx_inline_test ppx_expect))
  (inline_tests)
  (modules Anf Anf_ast Print_anf)
- (libraries base angstrom ZOVML.Utils ZOVML))
+ (libraries base angstrom ZOVML.Ast ZOVML.Utils))

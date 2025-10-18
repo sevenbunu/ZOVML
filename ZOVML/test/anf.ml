@@ -3,7 +3,7 @@
 (** SPDX-License-Identifier: LGPL-2.1-or-later *)
 
 open Middlend
-open ZOVML.Ast
+open Ast
 
 let pp_result printer = function
   | Result.Ok res -> Format.printf "%a" printer res
