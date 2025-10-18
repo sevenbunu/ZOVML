@@ -896,7 +896,7 @@ let%expect_test "expr_valid_tp" =
           ((Binop (((Identificator (Ident "x")), []), Greater,
               ((Const (Int 2)), [TInt]))),
            [TBool]),
-          ((Const (Int 0)), [TInt]), (Some ((Const (Int 1)), [TInt])))),
+          ((Const (Int 0)), [TInt]), (TSome ((Const (Int 1)), [TInt])))),
        [TUnit]) |}]
 ;;
 
