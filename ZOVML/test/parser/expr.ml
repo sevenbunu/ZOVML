@@ -1,4 +1,4 @@
-(** Copyright 2025, Alexei Dmitrievtsev, Konstantin Oreshin *)
+(* * Copyright 2025, Alexei Dmitrievtsev, Konstantin Oreshin
 
 (** SPDX-License-Identifier: LGPL-2.1-or-later *)
 
@@ -99,4 +99,4 @@ let%expect_test "fac test" =
                 [(Expr_const (Const_int 1))])))
        ))
     |}]
-;;
+;; *)

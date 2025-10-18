@@ -12,6 +12,10 @@ depends: [
   "ocaml"
   "dune" {>= "3.20"}
   "ppx_deriving"
+  "qcheck-core"
+  "ppx_expect"
+  "ppx_inline_test" {with-test}
+  "ppx_expect"
   "ocamlformat" {build}
   "odoc" {with-doc}
 ]

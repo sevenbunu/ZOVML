@@ -1,2 +1,9 @@
 (library
- (name ZOVML))
+ (name ZOVML)
+ (instrumentation
+  (backend bisect_ppx))
+ (preprocess
+  (pps ppx_deriving.show ppx_inline_test ppx_expect))
+ (modules Codegen Machine Ast Parser)
+ (libraries base angstrom qcheck-core qcheck-core.runner)
+ (inline_tests))

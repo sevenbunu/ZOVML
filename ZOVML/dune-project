@@ -21,6 +21,10 @@
   ocaml
   dune
   ppx_deriving
+  qcheck-core
+  ppx_expect
+  (ppx_inline_test :with-test)
+  ppx_expect
   (ocamlformat :build))
  (tags
   ("add topics" "to describe" your project)))
