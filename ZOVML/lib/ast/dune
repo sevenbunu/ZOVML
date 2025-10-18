@@ -1,0 +1,9 @@
+(library
+ (name ast)
+ (public_name ZOVML.Ast)
+ (instrumentation
+  (backend bisect_ppx))
+ (preprocess
+  (pps ppx_deriving.show))
+ (modules Ast)
+ (libraries base angstrom qcheck-core qcheck-core.runner))

@@ -1,0 +1,10 @@
+(library
+ (name parser)
+ (public_name ZOVML.Parser)
+ (instrumentation
+  (backend bisect_ppx))
+ (preprocess
+  (pps ppx_inline_test ppx_expect ppx_deriving.show))
+ (modules Parser)
+ (libraries base angstrom qcheck-core qcheck-core.runner ZOVML.Ast)
+ (inline_tests))

@@ -25,25 +25,21 @@ let rec pp_reg ppf =
 ;;
 
 type instr =
-  (* Арифметические *)
   | Add of reg * reg * reg
   | Addi of reg * reg * int
   | Sub of reg * reg * reg
   | Mul of reg * reg * reg
   | Div of reg * reg * reg
   | Li of reg * int
-  (* Работа с памятью *)
   | Ld of reg * int * reg
   | Sd of reg * int * reg
-  (* Сравнение *)
   | Slt of reg * reg * reg
-  (* Переходы *)
   | Beq of reg * reg * string
   | Blt of reg * reg * string
   | Ble of reg * reg * string
-  (* Системные вызовы *)
   | Ecall
   | Ret
+  | Call of string
   | Mv of reg * reg
   | Label of string
   | Comment of string
@@ -68,6 +64,7 @@ let pp_instr ppf =
   | Ble (r1, r2, offset) -> fprintf ppf "ble %a, %a, %s" pp_reg r1 pp_reg r2 offset
   | Label s -> fprintf ppf "%s:" s
   | Comment s -> fprintf ppf "# %s" s
+  | Call symbol -> fprintf ppf "call %s" symbol
 ;;
 
 let addi k r1 r2 n = k @@ Addi (r1, r2, n)

@@ -972,7 +972,7 @@ let%expect_test "var_binding_simple" =
 ;;
 
 let%expect_test "fun_binding_simple" =
-  prs_and_prnt_ln binding show_binding "x = 1 in let y = 12 in y * 1";
+  prs_and_prnt_ln binding show_binding "let x = 1 in let y = 12 in y * 1";
   [%expect
     {|
     (Def
