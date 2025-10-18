@@ -84,7 +84,7 @@ let%test "word_invalid" =
 ;;
 
 let ident =
-  let keywords = [ "match"; "with"; "if"; "then"; "else"; "let"; "in" ] in
+  let keywords = [ "match"; "with"; "if"; "then"; "else"; "let"; "in"; "fun" ] in
   (let* x =
      satisfy (function
        | 'a' .. 'z' -> true
@@ -533,12 +533,31 @@ let bnd e bnd =
       let** pt = pattern Ban_p Ban_t in
       let* pts = many (ws *> pattern Ban_p Ban_t) in
       return (fun bb _ -> Def (FunDef (is_rec, ident, pt, pts, bb))))
-  <|> (let** pt = pattern Allow_p Allow_t in
-       return (fun bb _ -> Def (VarsDef (pt, bb))))
+  <|> (word "let"
+       *> let** pt = pattern Allow_p Allow_t in
+          return (fun bb _ -> Def (VarsDef (pt, bb))))
   <**> defbody e (oper "=")
   <**> option [] @@ (word "where" **> sep_by (ws *> char ';' *> ws) bnd)
   <|> let** ident = ident in
       oper "::" **> tp >>| fun t -> Decl (ident, t)
+;;
+
+let let_e e =
+  word "let"
+  *>
+  let** is_rec = word "rec" >>| (fun _ -> Rec) <|> return Nonrec in
+  let** pt = pattern Ban_p Ban_t in
+  let+ body = char '=' **> e
+  and+ ctx = word "in" **> e in
+  Let (Let_simple (is_rec, pt, body), ctx), []
+;;
+
+let anon_func e =
+  word "fun"
+  *> let** pt = pattern Ban_p Ban_t in
+     let* pts = many (ws *> pattern Ban_p Ban_t) in
+     let* ex = string "->" **> e in
+     return (AnonFunc (pt, pts, ex), [])
 ;;
 
 let binding e = fix (bnd e)
@@ -553,7 +572,7 @@ let prios_list =
   ; None, [ (Right, oper "&&", fun a b -> Binop (a, And, b), []) ]
   ; ( None
     , [ (Non, oper "==", fun a b -> Binop (a, Equality, b), [])
-      ; (Non, oper "/=", fun a b -> Binop (a, Inequality, b), [])
+      ; (Non, oper "<>", fun a b -> Binop (a, Inequality, b), [])
       ; (Non, oper ">=", fun a b -> Binop (a, EqualityOrGreater, b), [])
       ; (Non, oper "<=", fun a b -> Binop (a, EqualityOrLess, b), [])
       ; (Non, oper ">", fun a b -> Binop (a, Greater, b), [])
@@ -565,9 +584,9 @@ let prios_list =
       ; (Left, oper "-", fun a b -> Binop (a, Minus, b), [])
       ] )
   ; ( None
-    , [ (Left, oper "`div`", fun a b -> Binop (a, Divide, b), [])
+    , [ (Left, oper "/", fun a b -> Binop (a, Divide, b), [])
       ; (Left, oper "*", fun a b -> Binop (a, Multiply, b), [])
-      ; (Left, oper "`mod`", fun a b -> Binop (a, Mod, b), [])
+      ; (Left, oper "%", fun a b -> Binop (a, Mod, b), [])
       ] )
   ; None, [ (Right, oper "^", fun a b -> Binop (a, Pow, b), []) ]
   ]
@@ -650,15 +669,50 @@ let tuple_or_parensed_item_e e =
   tuple_or_parensed_item e (fun ex1 ex2 exs -> return (Tuple (ex1, ex2, exs), [])) return
 ;;
 
+let infix_binop =
+  let binop_anon_func op =
+    return
+      (AnonFunc
+         ( ([], PIdentificator (Ident "x"), [])
+         , [ [], PIdentificator (Ident "y"), [] ]
+         , ( Binop ((Identificator (Ident "x"), []), op, (Identificator (Ident "y"), []))
+           , [] ) ))
+  in
+  choice
+    [ parens
+        (choice
+           [ oper "||" *> binop_anon_func Or
+           ; oper "&&" *> binop_anon_func And
+           ; oper "==" *> binop_anon_func Equality
+           ; oper "<>" *> binop_anon_func Inequality
+           ; oper ">=" *> binop_anon_func EqualityOrGreater
+           ; oper "<=" *> binop_anon_func EqualityOrLess
+           ; oper ">" *> binop_anon_func Greater
+           ; oper "<" *> binop_anon_func Less
+           ; oper ":" *> binop_anon_func Cons
+           ; oper "-" *> binop_anon_func Minus
+           ; oper "+" *> binop_anon_func Plus
+           ; oper "*" *> binop_anon_func Multiply
+           ; oper "^" *> binop_anon_func Multiply
+           ; oper "/" *> binop_anon_func Divide
+           ; oper "%" *> binop_anon_func Mod
+           ])
+    ]
+  >>| fun e -> e, []
+;;
+
 let other_expr e fa =
   let e' = e >>= ex_tp in
   choice
-    [ const_e (* ; infix_binop *)
+    [ let_e e'
+    ; const_e
+    ; infix_binop
     ; ident_e
     ; nothing (return (ENone, []))
     ; just (return (ESome, []))
     ; if_then_else e'
     ; match_e e'
+    ; anon_func e'
     ; list_e e'
     ; tuple_or_parensed_item_e e'
     ]
@@ -673,7 +727,8 @@ let function_application ex e =
     many1
       (ws
        *> choice
-            [ const_e (* ; infix_binop *)
+            [ const_e
+            ; infix_binop
             ; ident_e
             ; just (return (ESome, []))
             ; nothing (return (ENone, []))
@@ -699,6 +754,17 @@ let expr = function
 
 let binding = binding (expr Allow_t)
 
+let%expect_test "expr_lambda" =
+  prs_and_prnt_ln (expr Allow_t) show_expr "fun x -> x + 1";
+  [%expect
+    {|
+      ((AnonFunc (([], (PIdentificator (Ident "x")), []), [],
+          ((Binop (((Identificator (Ident "x")), []), Plus, ((Const (Int 1)), []))),
+           [])
+          )),
+       []) |}]
+;;
+
 let%expect_test "expr_prio" =
   prs_and_prnt_ln (expr Allow_t) show_expr "(1 + 1)*2 > 1";
   [%expect
@@ -713,13 +779,10 @@ let%expect_test "expr_prio" =
 ;;
 
 let%expect_test "expr_div_mod" =
-  prs_and_prnt_ln (expr Allow_t) show_expr "10 `div` 3 `mod` 2";
+  prs_and_prnt_ln (expr Allow_t) show_expr "10 / 3 % 2";
   [%expect
     {|
-      ((Binop (
-          ((Binop (((Const (Int 10)), []), Divide, ((Const (Int 3)), []))), []),
-          Mod, ((Const (Int 2)), []))),
-       []) |}]
+      ((Binop (((Const (Int 10)), []), Divide, ((Const (Int 3)), []))), []) |}]
 ;;
 
 let%expect_test "expr_right_assoc" =
@@ -850,7 +913,7 @@ let%expect_test "expr_tuple_neg" =
 ;;
 
 let%expect_test "expr_lambda_invalid_neg" =
-  prs_and_prnt_ln (expr Allow_t) show_expr " \\ -1 -> 1";
+  prs_and_prnt_ln (expr Allow_t) show_expr "fun -1 -> 1";
   [%expect
     {|
       error: : no more choices |}]
@@ -901,7 +964,7 @@ let%expect_test "expr_valid_tp" =
 ;;
 
 let%expect_test "var_binding_simple" =
-  prs_and_prnt_ln binding show_binding "x = 1";
+  prs_and_prnt_ln binding show_binding "let x = 1";
   [%expect
     {|
       (Def
@@ -939,6 +1002,42 @@ let%expect_test "decl" =
   [%expect
     {|
       (Decl ((Ident "f"), (FunctionType (FuncT (TInt, TInt, [TInt])))))
+      |}]
+;;
+
+let%expect_test "inner_let" =
+  prs_and_prnt_ln binding show_binding "let f x = let y = 1 in y + x";
+  [%expect
+    {|
+      (Def
+         (FunDef (Nonrec, (Ident "f"), ([], (PIdentificator (Ident "x")), []),
+            [],
+            ((Let (
+                (Let_simple (Nonrec, ([], (PIdentificator (Ident "y")), []),
+                   ((Const (Int 1)), []))),
+                ((Binop (((Identificator (Ident "y")), []), Plus,
+                    ((Identificator (Ident "x")), []))),
+                 [])
+                )),
+             [])
+            )))
+      |}]
+;;
+
+let%expect_test "anon_func" =
+  prs_and_prnt_ln binding show_binding "let f x = (fun s -> s) x";
+  [%expect
+    {|
+      (Def
+         (FunDef (Nonrec, (Ident "f"), ([], (PIdentificator (Ident "x")), []),
+            [],
+            ((FunctionApply (
+                ((AnonFunc (([], (PIdentificator (Ident "s")), []), [],
+                    ((Identificator (Ident "s")), []))),
+                 []),
+                ((Identificator (Ident "x")), []), [])),
+             [])
+            )))
       |}]
 ;;
 

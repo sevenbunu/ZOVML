@@ -138,6 +138,7 @@ type expression =
   | FunctionApply of expr * expr * expr list
   | Binop of expr * binop * expr
   | Match of expr * (pattern * expr) list
+  | AnonFunc of pattern * pattern_list * expr
 
 and let_definition = Let_simple of is_rec * pattern * expr
 and expr = expression * tp_list [@@deriving show { with_path = false }]
