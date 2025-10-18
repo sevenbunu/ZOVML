@@ -3,14 +3,14 @@
 (** SPDX-License-Identifier: LGPL-2.1-or-later *)
 
 type const =
-  | Int of (int[@gen QCheck.Gen.(0 -- Int.max_int)]) (** e.g. [18] *)
-  | Bool of bool (** e.g. [True] *)
-  | Unit (** () *)
+  | Int of (int[@gen QCheck.Gen.(0 -- Int.max_int)])
+  | Bool of bool
+  | Unit
 [@@deriving show { with_path = false }]
 
 type 'a toption =
-  | TNone (** None *)
-  | TSome of 'a (** e.g. [Just 5] *)
+  | TNone
+  | TSome of 'a
 [@@deriving show { with_path = false }]
 
 type is_rec =
@@ -19,16 +19,16 @@ type is_rec =
 [@@deriving show { with_path = false }]
 
 type tp =
-  | TUnit (** () *)
-  | TInt (** Int *)
-  | TBool (** Bool *)
-  | OptionParam of tp (** e.g. [Option Int]*)
-  | ListParam of tp (** e.g. [[Int]] *)
-  | TupleParams of tp * tp * tp_list (** e.g. [(Int, Bool)] *)
+  | TUnit
+  | TInt
+  | TBool
+  | OptionParam of tp
+  | ListParam of tp
+  | TupleParams of tp * tp * tp_list
   | FunctionType of functype
 [@@deriving show { with_path = false }]
 
-and functype = FuncT of tp * tp * tp_list (** e.g. [Int-> Bool -> (Int,Bool)] *)
+and functype = FuncT of tp * tp * tp_list
 
 and tp_list =
   (tp list
@@ -98,8 +98,8 @@ let gen_string =
 type ident = Ident of (string[@gen gen_string]) [@@deriving show { with_path = false }]
 
 type pconst =
-  | OrdinaryPConst of const (** e.g [True]*)
-  | NegativePInt of (int[@gen QCheck.Gen.(0 -- Int.max_int)]) (** e.g [-12]*)
+  | OrdinaryPConst of const
+  | NegativePInt of (int[@gen QCheck.Gen.(0 -- Int.max_int)])
 [@@deriving show { with_path = false }]
 
 type pattern =
@@ -144,10 +144,10 @@ and let_definition = Let_simple of is_rec * pattern * expr
 and expr = expression * tp_list [@@deriving show { with_path = false }]
 
 type def =
-  | VarsDef of pattern * expr (** e.g [x = let y = 12 in y * z where z = 5] *)
+  | VarsDef of pattern * expr
   | FunDef of is_rec * ident * pattern * pattern_list * expr
 [@@deriving show { with_path = false }]
 
 and binding =
   | Def of def
-  | Decl of ident * tp (** e.g [f :: Int -> Int]*)
+  | Decl of ident * tp
